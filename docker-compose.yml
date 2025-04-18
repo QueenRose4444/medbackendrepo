@@ -1,0 +1,26 @@
+version: '3.8' # Or a version compatible with your docker compose install
+
+services:
+  # --- NEW Meds Backend service ---
+  meds-backend:
+    build:
+      context: /home/rose/webSites/backend/med_backend # <--- IMPORTANT: Set path to where your meds_backend.js/Dockerfile/package.json are
+      dockerfile: Dockerfile
+    # Or use image: meds-backend-image:latest if you build manually first
+    container_name: meds-backend
+    ports:
+      # Use a DIFFERENT host port (e.g., 3001) mapped to container port 3001
+      - "3001:3001"
+    environment:
+      # Set PORT inside container (optional if app defaults or reads from process.env.PORT)
+      - PORT=3001
+      # You SHOULD set JWT_SECRET via environment variables for security
+      - JWT_SECRET=YOUR_REALLY_SECRET_KEY_CHANGE_ME_IN_ENV! # <-- CHANGE THIS SECRET KEY!!!
+    restart: unless-stopped
+    networks:
+      - meds-network # Attach to its own network
+
+networks:
+  meds-network: # Define the network for the meds backend
+    driver: bridge
+

@@ -1,0 +1,19 @@
+{
+  "name": "meds-app-backend",
+  "version": "1.0.0",
+  "description": "Backend for Meds Tracker with Login",
+  "main": "meds_backend.js",
+  "scripts": {
+    "start": "node meds_backend.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Rose",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.18.2",  
+    "bcrypt": "^5.1.0",     
+    "jsonwebtoken": "^9.0.0", 
+    "cors": "^2.8.5",         
+    "body-parser": "^1.20.1" 
+  }
+}

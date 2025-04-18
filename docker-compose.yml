@@ -4,7 +4,6 @@ services:
   # --- NEW Meds Backend service ---
   meds-backend:
     build:
-      context: /home/rose/webSites/backend/med_backend # <--- IMPORTANT: Set path to where your meds_backend.js/Dockerfile/package.json are
       dockerfile: Dockerfile
     # Or use image: meds-backend-image:latest if you build manually first
     container_name: meds-backend

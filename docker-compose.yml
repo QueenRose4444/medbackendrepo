@@ -1,25 +1,24 @@
-version: '3.8' # Or a version compatible with your docker compose install
+        version: '3.8' # Or a version compatible with your docker compose install
 
-services:
-  # --- NEW Meds Backend service ---
-  meds-backend:
-    build:
-      dockerfile: Dockerfile
-    # Or use image: meds-backend-image:latest if you build manually first
-    container_name: meds-backend
-    ports:
-      # Use a DIFFERENT host port (e.g., 3001) mapped to container port 3001
-      - "3001:3001"
-    environment:
-      # Set PORT inside container (optional if app defaults or reads from process.env.PORT)
-      - PORT=3001
-      # You SHOULD set JWT_SECRET via environment variables for security
-      - JWT_SECRET=YOUR_REALLY_SECRET_KEY_CHANGE_ME_IN_ENV! # <-- CHANGE THIS SECRET KEY!!!
-    restart: unless-stopped
-    networks:
-      - meds-network # Attach to its own network
+        services:
+          meds-backend:
+            # Build the image using the Dockerfile in the current directory (.) of the cloned repo
+            build: .
+            container_name: meds-backend # Use the correct container name
+            ports:
+              # Map host port 3001 to container port 3001
+              - "3001:3001"
+            environment:
+              # Port the app listens on inside the container
+              - PORT=3001
+              # Define your JWT Secret here. You can change this later via Portainer's Stack Editor.
+              - JWT_SECRET=YOUR_INITIAL_STRONG_SECRET_KEY_HERE! # <-- SET YOUR SECRET KEY!
+            restart: unless-stopped
+            networks:
+              - meds-network # Attach to its own network
 
-networks:
-  meds-network: # Define the network for the meds backend
-    driver: bridge
+        networks:
+          meds-network: # Define the network for the meds backend
+            driver: bridge
 
+        

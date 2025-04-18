@@ -1,81 +1,110 @@
-    // meds_backend.js
-    const express = require('express');
-    const bcrypt = require('bcrypt');
-    const jwt = require('jsonwebtoken');
-    const cors = require('cors'); // Require the cors package
-    const bodyParser = require('body-parser');
+// meds_backend.js
+const express = require('express');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const cors = require('cors');
+const bodyParser = require('body-parser');
 
-    const app = express();
-    const PORT = process.env.PORT || 3001;
-    const JWT_SECRET = process.env.JWT_SECRET || 'YOUR_REALLY_SECRET_KEY_CHANGE_ME!'; // Get secret from env or fallback (CHANGE FALLBACK)
+const app = express();
+const PORT = process.env.PORT || 3001;
+const JWT_SECRET = process.env.JWT_SECRET || 'FALLBACK_SECRET_CHANGE_ME_IF_NOT_USING_DOCKER_ENV';
 
-    // --- Middleware ---
+// --- Middleware ---
+const corsOptions = {
+  origin: 'https://rosiesite.rosestuffs.org',
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS",
+  allowedHeaders: "Content-Type, Authorization",
+  optionsSuccessStatus: 204
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
+app.use(bodyParser.json());
 
-    // **Explicit CORS Configuration**
-    const corsOptions = {
-      origin: 'https://rosiesite.rosestuffs.org', // Allow only your frontend domain
-      methods: "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS", // Add OPTIONS
-      allowedHeaders: "Content-Type, Authorization", // Allow necessary headers
-      optionsSuccessStatus: 204 // Return 204 for preflight OPTIONS requests
-    };
-    // Use configured CORS for all routes
-    app.use(cors(corsOptions));
-    // Explicitly handle OPTIONS preflight requests for all routes
-    app.options('*', cors(corsOptions)); // Enable pre-flight across-the-board
+// --- In-Memory Data Store (TEMPORARY) ---
+const users = {};
+console.log("INFO: Using temporary in-memory storage.");
 
-    app.use(bodyParser.json()); // Parse JSON request bodies
-
-    // --- In-Memory Data Store (TEMPORARY - Replace with Database!) ---
-    const users = {};
-
-    // --- Authentication Middleware ---
-    const authenticateToken = (req, res, next) => {
-        // Handle preflight requests BEFORE authentication check
-        // The cors middleware with app.options should handle this, but keeping explicit check just in case
-        // if (req.method === 'OPTIONS') {
-        //     return next();
-        // }
-
-        const authHeader = req.headers['authorization'];
-        const token = authHeader && authHeader.split(' ')[1];
-        if (token == null) return res.sendStatus(401); // No token
-
-        jwt.verify(token, JWT_SECRET, (err, user) => {
-            if (err) { console.log("JWT verification failed:", err.message); return res.sendStatus(403); } // Invalid/expired token
-            req.user = user;
-            next();
-        });
-    };
-
-    // --- API Routes ---
-
-    // POST /api/auth/register
-    app.post('/api/auth/register', async (req, res) => { /* ... same as before ... */
-        const { username, password } = req.body; if (!username || !password || typeof username !== 'string' || typeof password !== 'string' || password.length < 4) { return res.status(400).json({ error: 'Username and a password (min 4 chars) are required' }); } if (users[username]) { return res.status(400).json({ error: 'Username already exists' }); } try { const saltRounds = 10; const passwordHash = await bcrypt.hash(password, saltRounds); users[username] = { passwordHash: passwordHash, medData: { shotHistory: [], settings: {} } }; console.log(`User registered: ${username}`); res.status(201).json({ message: 'User registered successfully' }); } catch (error) { console.error("Registration error:", error); res.status(500).json({ error: 'Failed to register user' }); }
+// --- Authentication Middleware ---
+const authenticateToken = (req, res, next) => {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (token == null) return res.sendStatus(401);
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) { console.log("JWT verification failed:", err.message); return res.sendStatus(403); }
+        req.user = user; // Attach user payload ({ username: '...' })
+        console.log(`Auth middleware: Token verified for user ${user.username}`);
+        next();
     });
+};
 
-    // POST /api/auth/login
-    app.post('/api/auth/login', async (req, res) => { /* ... same as before ... */
-        const { username, password } = req.body; if (!username || !password) { return res.status(400).json({ error: 'Username and password are required' }); } const user = users[username]; if (!user) { return res.status(401).json({ error: 'Invalid credentials' }); } try { const match = await bcrypt.compare(password, user.passwordHash); if (match) { const userPayload = { username: username }; const accessToken = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '1h' }); console.log(`User logged in: ${username}`); res.json({ accessToken: accessToken }); } else { res.status(401).json({ error: 'Invalid credentials' }); } } catch (error) { console.error("Login error:", error); res.status(500).json({ error: 'Login failed' }); }
-    });
+// --- API Routes ---
 
-    // GET /api/meddata - Protected Route
-    // Note: authenticateToken middleware runs first
-    app.get('/api/meddata', authenticateToken, (req, res) => { /* ... same as before ... */
-        const username = req.user.username; const userData = users[username]; if (!userData) { return res.status(404).json({ error: 'User data not found' }); } console.log(`Fetching data for user: ${username}`); res.json(userData.medData || { shotHistory: [], settings: {} });
-    });
+// Register
+app.post('/api/auth/register', async (req, res) => { /* ... same as before ... */
+    const { username, password } = req.body; console.log(`Registration attempt for username: ${username}`); if (!username || !password || typeof username !== 'string' || typeof password !== 'string' || password.length < 4) { console.log("Registration failed: Invalid input"); return res.status(400).json({ error: 'Username and a password (min 4 chars) are required' }); } if (users[username]) { console.log(`Registration failed: Username ${username} already exists`); return res.status(400).json({ error: 'Username already exists' }); } try { const saltRounds = 10; const passwordHash = await bcrypt.hash(password, saltRounds); users[username] = { passwordHash: passwordHash, medData: { shotHistory: [], settings: {} } }; console.log(`User registered successfully: ${username}`); res.status(201).json({ message: 'User registered successfully' }); } catch (error) { console.error("Registration error:", error); res.status(500).json({ error: 'Failed to register user' }); }
+});
 
-    // POST /api/meddata - Protected Route
-    // Note: authenticateToken middleware runs first
-    app.post('/api/meddata', authenticateToken, (req, res) => { /* ... same as before ... */
-        const username = req.user.username; const newMedData = req.body; if (!users[username]) { return res.status(404).json({ error: 'User not found' }); } if (!newMedData || typeof newMedData !== 'object' || !Array.isArray(newMedData.shotHistory) || typeof newMedData.settings !== 'object') { return res.status(400).json({ error: 'Invalid data format provided' }); } if (newMedData.shotHistory.some(shot => !shot.dateTime || isNaN(new Date(shot.dateTime).getTime()))) { return res.status(400).json({ error: 'Invalid date found in shot history.' }); } users[username].medData = newMedData; console.log(`Updated data for user: ${username}`); res.status(200).json({ message: 'Data saved successfully' });
-    });
+// Login
+app.post('/api/auth/login', async (req, res) => { /* ... same as before ... */
+    const { username, password } = req.body; console.log(`Login attempt for username: ${username}`); if (!username || !password) { console.log("Login failed: Missing username or password"); return res.status(400).json({ error: 'Username and password are required' }); } const user = users[username]; if (!user) { console.log(`Login failed: User ${username} not found`); return res.status(401).json({ error: 'Invalid credentials' }); } try { const match = await bcrypt.compare(password, user.passwordHash); if (match) { const userPayload = { username: username }; const accessToken = jwt.sign(userPayload, JWT_SECRET, { expiresIn: '1h' }); console.log(`User logged in successfully: ${username}`); res.json({ accessToken: accessToken }); } else { console.log(`Login failed: Invalid password for user ${username}`); res.status(401).json({ error: 'Invalid credentials' }); } } catch (error) { console.error("Login error:", error); res.status(500).json({ error: 'Login failed' }); }
+});
 
-    // --- Start Server ---
-    app.listen(PORT, () => {
-        console.log(`Meds backend server running on port ${PORT}`);
-        console.log(`Allowing requests from origin: ${corsOptions.origin}`); // Log allowed origin
-        if (!process.env.JWT_SECRET && JWT_SECRET === 'YOUR_REALLY_SECRET_KEY_CHANGE_ME!') { console.error("SECURITY WARNING: Default JWT_SECRET is used!"); }
-        console.log("WARNING: Using temporary in-memory storage.");
-    });
-    
+// **NEW:** Change Password Route (Protected)
+app.post('/api/auth/change-password', authenticateToken, async (req, res) => {
+    const username = req.user.username; // Get username from verified token
+    const { currentPassword, newPassword } = req.body;
+
+    console.log(`Password change attempt for user: ${username}`);
+
+    // Validation
+    if (!currentPassword || !newPassword || typeof newPassword !== 'string' || newPassword.length < 4) {
+        console.log(`Password change failed for ${username}: Invalid input`);
+        return res.status(400).json({ error: 'Current password and new password (min 4 chars) are required.' });
+    }
+
+    const user = users[username];
+    if (!user) {
+        // Should not happen if token is valid, but safety check
+        console.error(`Password change failed: User ${username} from valid token not found in store.`);
+        return res.status(404).json({ error: 'User not found.' });
+    }
+
+    try {
+        // Verify current password
+        const isMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+        if (!isMatch) {
+            console.log(`Password change failed for ${username}: Current password incorrect.`);
+            return res.status(401).json({ error: 'Incorrect current password.' });
+        }
+
+        // Hash the new password
+        const saltRounds = 10;
+        const newPasswordHash = await bcrypt.hash(newPassword, saltRounds);
+
+        // Update the stored hash (TEMPORARY in-memory store)
+        users[username].passwordHash = newPasswordHash;
+
+        console.log(`Password changed successfully for user: ${username}`);
+        res.status(200).json({ message: 'Password changed successfully.' });
+
+    } catch (error) {
+        console.error(`Password change error for ${username}:`, error);
+        res.status(500).json({ error: 'Failed to change password.' });
+    }
+});
+
+
+// GET /api/meddata (Protected)
+app.get('/api/meddata', authenticateToken, (req, res) => { /* ... same as before ... */
+    const username = req.user.username; const userData = users[username]; if (!userData) { console.error(`Data integrity issue: User ${username} found in token but not in memory store.`); return res.status(404).json({ error: 'User data not found' }); } console.log(`Fetching data for user: ${username}`); res.json(userData.medData || { shotHistory: [], settings: {} });
+});
+
+// POST /api/meddata (Protected)
+app.post('/api/meddata', authenticateToken, (req, res) => { /* ... same as before ... */
+    const username = req.user.username; const newMedData = req.body; console.log(`Received data update request for user: ${username}`); if (!users[username]) { console.error(`Data integrity issue: User ${username} found in token but not in memory store during save.`); return res.status(404).json({ error: 'User not found' }); } if (!newMedData || typeof newMedData !== 'object' || !Array.isArray(newMedData.shotHistory) || typeof newMedData.settings !== 'object') { console.log(`Save failed for ${username}: Invalid data format received.`); return res.status(400).json({ error: 'Invalid data format provided' }); } if (newMedData.shotHistory.some(shot => !shot || !shot.dateTime || isNaN(new Date(shot.dateTime).getTime()))) { console.log(`Save failed for ${username}: Invalid date found in shot history.`); return res.status(400).json({ error: 'Invalid date found in shot history.' }); } users[username].medData = newMedData; console.log(`Updated data successfully for user: ${username}`); res.status(200).json({ message: 'Data saved successfully' });
+});
+
+// --- Start Server ---
+app.listen(PORT, () => { /* ... same as before ... */
+    console.log(`Meds backend server running on port ${PORT}`); console.log(`Allowing requests from origin: ${corsOptions.origin}`); if (!process.env.JWT_SECRET && JWT_SECRET === 'FALLBACK_SECRET_CHANGE_ME_IF_NOT_USING_DOCKER_ENV') { console.error("SECURITY WARNING: Default fallback JWT_SECRET is used! Set via environment variable!"); } else if (!process.env.JWT_SECRET && JWT_SECRET.startsWith('YOUR_REALLY_SECRET_KEY')) { console.error("SECURITY WARNING: Placeholder JWT_SECRET is used! Set via environment variable."); } else if (!process.env.JWT_SECRET){ console.warn("WARNING: JWT_SECRET is not set via environment variable. Using fallback from code."); } console.log("WARNING: Using temporary in-memory storage.");
+});

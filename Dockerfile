@@ -6,11 +6,13 @@ WORKDIR /usr/src/app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-# Using --omit=dev which is preferred over --production for newer npm versions
-RUN npm install --omit=dev --ignore-scripts
+# Install build tools needed for native modules like bcrypt, run npm install, then remove build tools
+# Using apk add --virtual creates a temporary group we can easily remove later
+RUN apk add --no-cache --virtual .build-deps python3 make g++ && \
+    npm install --omit=dev && \
+    apk del .build-deps
 
-# Copy backend code
+# Copy backend code AFTER npm install to leverage Docker cache better
 COPY meds_backend.js .
 
 # Expose the port the app runs on (e.g., 3001)

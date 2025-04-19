@@ -1,24 +1,37 @@
-        version: '3.8' # Or a version compatible with your docker compose install
+version: '3.8' # Or a version compatible with your docker compose install
 
-        services:
-          meds-backend:
-            # Build the image using the Dockerfile in the current directory (.) of the cloned repo
-            build: .
-            container_name: meds-backend # Use the correct container name
-            ports:
-              # Map host port 3001 to container port 3001
-              - "3001:3001"
-            environment:
-              # Port the app listens on inside the container
-              - PORT=3001
-              # Define your JWT Secret here. You can change this later via Portainer's Stack Editor.
-              - JWT_SECRET=YOUR_INITIAL_STRONG_SECRET_KEY_HERE! # <-- SET YOUR SECRET KEY!
-            restart: unless-stopped
-            networks:
-              - meds-network # Attach to its own network
+services:
+  meds-backend:
+    # --- Option 1: Use this 'build' section if deploying from Git Repository ---
+    # It tells Portainer/Docker to build the image using the Dockerfile
+    # located in the same directory (.) as this compose file within the repo.
+    build: .
+    # --- Option 2: Use this 'image' line if you built the image manually first ---
+    # Comment out the 'build: .' line above and uncomment the 'image:' line below.
+    # Ensure the image name matches the tag you used with 'docker build -t'.
+    # image: meds-backend-image:latest
 
-        networks:
-          meds-network: # Define the network for the meds backend
-            driver: bridge
+    container_name: meds-backend # The name for your container
+    ports:
+      # Map host port 3001 to container port 3001
+      - "3001:3001"
+    environment:
+      # Port the app listens on inside the container (must match Dockerfile EXPOSE and app code)
+      - PORT=3001
+      # *** SET YOUR STRONG SECRET KEY HERE! You can edit this later in Portainer Stack Editor ***
+      - JWT_SECRET=YOUR_INITIAL_STRONG_SECRET_KEY_HERE!
+    volumes:
+      # Mount the specified host directory to /data inside the container
+      # The SQLite DB file ('meds.db') will be stored in /home/site_data on your server.
+      # IMPORTANT: Ensure /home/site_data exists on your host server!
+      - /home/site_data:/data
+    restart: unless-stopped
+    networks:
+      - meds-network # Attach to its own network
 
-        
+networks:
+  meds-network: # Define the network for the meds backend
+    driver: bridge
+
+# Note: The top-level 'volumes:' section for named volumes is removed as we are using a bind mount.
+

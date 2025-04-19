@@ -14,12 +14,12 @@ const PORT = process.env.PORT || 3001;
 
 // --- Security Configuration ---
 // Access Token: Short-lived, used for most API calls
-const JWT_SECRET = process.env.JWT_SECRET || 'FALLBACK_ACCESS_SECRET_CHANGE_ME';
-const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '15m'; // e.g., 15 minutes
+const JWT_SECRET = process.env.JWT_SECRET || 't8r74T3y&a*PCpev$8QCz!sxd%$B$TMHZyTp79%eSKzqEt!mKBf!yA1X3kX3Qu0M';
+const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '45m'; // e.g., 15 minutes
 
 // Refresh Token: Long-lived, used ONLY to get a new access token
-const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'FALLBACK_REFRESH_SECRET_CHANGE_ME_TOO';
-const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d'; // e.g., 7 days
+const REFRESH_TOKEN_SECRET = process.env.REFRESH_TOKEN_SECRET || 'B8rkF3#wk@5xsXG7c*vzgmurpM9gs1#4*hUn5h4e^M6UNES1F2M8&*n!U5tVea6c';
+const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '28d'; // e.g., 7 days
 
 // --- Database Setup ---
 const dbPath = path.resolve('/data', 'meds.db');

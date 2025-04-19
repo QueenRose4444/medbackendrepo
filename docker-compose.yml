@@ -18,8 +18,7 @@ services:
     environment:
       # Port the app listens on inside the container (must match Dockerfile EXPOSE and app code)
       - PORT=3001
-      # *** SET YOUR STRONG SECRET KEY HERE! You can edit this later in Portainer Stack Editor ***
-      - JWT_SECRET=YOUR_INITIAL_STRONG_SECRET_KEY_HERE!
+      # *** SET YOUR JWT_SECRET VIA PORTAINER ENV VARIBLES ***
     volumes:
       # Mount the specified host directory to /data inside the container
       # The SQLite DB file ('meds.db') will be stored in /home/site_data on your server.
